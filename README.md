@@ -1,1 +1,1 @@
-https://github.com/AloySobek/Fract_ol.git
+School project named Fract_ol.
