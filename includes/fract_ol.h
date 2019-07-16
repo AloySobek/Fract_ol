@@ -6,7 +6,7 @@
 /*   By: vrichese <vrichese@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/07/15 15:33:31 by vrichese          #+#    #+#             */
-/*   Updated: 2019/07/16 20:55:42 by vrichese         ###   ########.fr       */
+/*   Updated: 2019/07/16 21:04:18 by vrichese         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,10 +31,10 @@ typedef struct		s_window
 
 typedef struct		s_benoit
 {
-	void			*connect;
 	void			*window;
-	void			*picture;
 	void			*pixels;
+	void			*connect;
+	void			*picture;
 	t_window		win;
 }					t_benoit;
 
