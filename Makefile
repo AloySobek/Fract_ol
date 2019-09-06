@@ -6,7 +6,7 @@
 #    By: vrichese <vrichese@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2019/07/03 18:19:29 by vrichese          #+#    #+#              #
-#    Updated: 2019/07/15 16:27:57 by vrichese         ###   ########.fr        #
+#    Updated: 2019/09/01 19:04:45 by vrichese         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -28,23 +28,25 @@ LIBFTPRINTF	= $(PRINTF_DIR)/libftprintf.a
 LIBFT		= $(GNL_DIR)/libft/libft.a
 MLX_LIB		= $(MLX_DIR)/libmlx.a
 
-FILES		= $(addprefix $(SOURCE_DIR)/, test.c)
+FILES		= $(addprefix $(SOURCE_DIR)/, main.c)
 
 OBJ_FILES	= ${FILES:%.c=%.o}
 
 CC			= gcc
 
-CFLAGS		= -Wall -Wextra -Werror
+#CFLAGS		= -Wall -Wextra -Werror
 
 MLX_FLAGS	= -lmlx -framework OpenGL -framework AppKit
+
+OpenCL		= -framework OpenCL
 
 all: $(NAME)
 
 $(NAME): $(OBJ_FILES) $(LIBFT) $(LIBFTPRINTF) $(MLX_LIB)
-	@$(CC) $(CFLAGS) $(MLX_FLAGS) $(INCLUDES) $(GNL_DIR)/source/get_next_line.c $^ -o $@
+	@$(CC) $(CFLAGS) $(MLX_FLAGS) $(OpenCL) $(INCLUDES) $(GNL_DIR)/source/get_next_line.c $^ -o $@
 
 $(SOURCE_DIR)/%.o: $(SOURCE_DIR)/%.c
-	@$(CC) $(CFLAGS) $(INCLUDES) -I./$(MLX_INCLUDE) -c $< -o $@
+	@$(CC) $(CFLAGS) $(INCLUDES) -I./$(MLX_INCLUDE)  -c $< -o $@
 
 $(LIBFT):
 	@$(MAKE) -C $(LIBFT_DIR)
