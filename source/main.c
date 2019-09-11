@@ -6,7 +6,7 @@
 /*   By: vrichese <vrichese@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/07/15 15:34:33 by vrichese          #+#    #+#             */
-/*   Updated: 2019/09/06 21:41:17 by vrichese         ###   ########.fr       */
+/*   Updated: 2019/09/10 17:58:19 by vrichese         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,62 +17,49 @@
 #include <CL/opencl.h>
 #endif
 
-//const char *julia_set =
-//"__kernel void julia_set(int s_c, int f_c, int x, int y, int size_line, int max_iter, double zoom, double q, double w, __global char *image)\
-//{																																			\
-//	double midX			= x / 2;																											\
-//	double midY			= y / 2;																											\
-//	int		index		= get_global_id(0);																									\
-//	double	X0			= (midX - (index - (index / x * x))) / zoom + q;																	\
-//	double 	Y0			= (midY - (index / x)) / zoom + w;																					\
-//	double sqaureX		= 0.0;																												\
-//	double sqaureY		= 0.0;																												\
-//	double difSquare	= 0.0;																												\
-//	double sumSquare	= 0.0;																												\
-//	double z_x			= 0.0;																												\
-//	double z_y			= 0.0;																												\
-//	int		i = ((index - (index / x * x)) * 4) + ((index / x) * size_line);																\
-//	image[i]			= 0;																												\
-//	image[i + 1] 		= 0;																												\
-//	image[i + 2]		= 0;																												\
-//	image[i + 3]		= 0;
-//	int	iter;"
-
 const char *mandelbrot_set =
-"__kernel void mandelbrot_set(int s_c, int f_c, int x, int y, int max_iter, double zoom, double q, double w, int test1, __global int *image)\
-{																										\
-	int		index		= get_global_id(0);																\
-	double	midX		= x / 2;																		\
-	double	midY		= y / 2;																		\
-	double	X0			= (midX - (index - (index / x * x))) / zoom + q;								\
-	double	Y0			= (midY - (index / x)) / zoom + w;												\
-	double	squareX		= 0.0;																			\
-	double	squareY		= 0.0;																			\
-	double	difSquare 	= 0.0;																			\
-	double	sumSquare 	= 0.0;																			\
-	double	z_x			= 0.0;																			\
-	double	z_y			= 0.0;																			\
-	image[index]		= 0;																			\
-	int iter;																							\
-	for (iter = 0; sumSquare < 4.0 && iter < max_iter; ++iter)											\
-	{																									\
-		difSquare	= squareX - squareY;																\
-		z_y			= z_x * (z_y + z_y) - Y0;															\
-		z_x			= difSquare - X0;																	\
-		squareX		= z_x * z_x;																		\
-		squareY		= z_y * z_y;																		\
-		sumSquare	= squareX + squareY;																\
-	}																									\
-	int r = ((s_c >> 16) & 0xff) + (((f_c >> 16) & 0xff) - ((s_c >> 16) & 0xff)) * iter / max_iter;		\
-	int g = ((s_c >> 8) & 0xff) + (((f_c >> 8) & 0xff) - ((s_c >> 8) & 0xff)) * iter / max_iter;		\
-	int b = (s_c & 0xff) + ((f_c & 0xff) - (s_c & 0xff)) * iter / max_iter;									\
-	image[index]		= (r << 16) | (g << 8) | b;														\
+"																																\
+__kernel void mandelbrot_set(int s_c, int f_c, int max_iter, double zoom, double q, double w, int test1, __global int *image)	\
+{																																\
+	int		x = get_global_id(0);																								\
+	int		y = get_global_id(1);																								\
+	double	midX = x / 2;																										\
+	double	midY = y / 2;																										\
+	double	currentX = 0.0;																										\
+	double	currentY = 0.0;																										\
+	double	X0 = (midX - x) / zoom + q;																							\
+	double	Y0 = (midY - y) / zoom + w;																							\
+	double	squareX = 0.0;																										\
+	double	squareY = 0.0;																										\
+	double	difSquare = 0.0;																									\
+	double	z_x = 0.0;																											\
+	double	z_y = 0.0;																											\
+	int iter;																													\
+	for (iter = 0; squareX + squareY < 4.0 && iter < max_iter; ++iter)															\
+	{																															\
+		difSquare = squareX - squareY;																							\
+		z_y = mad(z_x, z_y + z_y, 0) - Y0;																						\
+		z_x = difSquare - X0;																									\
+		if (currentX == z_x && currentY == z_y)																					\
+		{																														\
+			iter = max_iter;																									\
+			break;																												\
+		}																														\
+		currentX = z_x;																											\
+		currentY = z_y;																											\
+		squareX = mad(z_x, z_x, 0);																								\
+		squareY = mad(z_y, z_y, 0);																								\
+	}																															\
+	int r = ((s_c >> 16) & 0xff) + (((f_c >> 16) & 0xff) - ((s_c >> 16) & 0xff)) * iter / max_iter;								\
+	int g = ((s_c >> 8) & 0xff) + (((f_c >> 8) & 0xff) - ((s_c >> 8) & 0xff)) * iter / max_iter;								\
+	int b = (s_c & 0xff) + ((f_c & 0xff) - (s_c & 0xff)) * iter / max_iter;														\
+	image[index] = (r << 16) | (g << 8) | b;																					\
 }";
 
 void			display_pixels(t_benoit *benoit)
 {
-	clEnqueueReadBuffer(benoit->c_q, benoit->P, CL_FALSE, 0 , sizeof(char) * benoit->win.width * benoit->win.height * 4, (int *)benoit->pix_buf, 0, NULL, NULL);
-	clEnqueueNDRangeKernel(benoit->c_q, benoit->kernel, 1, NULL, &benoit->global_size, &benoit->local_size, 0, NULL, NULL);
+	clEnqueueReadBuffer(benoit->c_q, benoit->P, CL_TRUE, 0 , sizeof(int) * benoit->win.width * benoit->win.height, (int *)benoit->pix_buf, 0, NULL, NULL);
+	clEnqueueNDRangeKernel(benoit->c_q, benoit->kernel, 2, NULL, &benoit->global_size, &benoit->local_size, 0, NULL, NULL);
 	clSetKernelArg(benoit->kernel, 0, sizeof(int), (void *)&benoit->start_color);
 	clSetKernelArg(benoit->kernel, 1, sizeof(int), (void *)&benoit->finish_color);
 	clSetKernelArg(benoit->kernel, 2, sizeof(int), (void *)&benoit->win.width);
@@ -181,6 +168,7 @@ int				mouse_press(int button, int x, int y, t_benoit *benoit)
 		benoit->x += benoit->x1;
 	}
 	display_pixels(benoit);
+	do_something(benoit);
 	return (0);
 }
 
@@ -252,8 +240,8 @@ t_benoit		*benoit_init(int argc, char **argv)
 
 	if (!(benoit = (t_benoit *)malloc(sizeof(t_benoit))))
 		error_handler(MEMORY_ALLOC_ERROR);
-	benoit->start_color = 0xd2691e;
-	benoit->finish_color = 0xdcdcdc;
+	benoit->start_color = 0x8b8b;
+	benoit->finish_color = 0x8b008b;
 	benoit->win.width = 2560;
 	benoit->win.height = 1440;
 	benoit->max_iter = 30;
@@ -267,6 +255,20 @@ t_benoit		*benoit_init(int argc, char **argv)
 	benoit->test = 2;
 
 	ft_bzero(benoit->keys, 1024);
+	//benoit->image_format = (cl_image_format *)malloc(sizeof(cl_image_format));
+	//benoit->image_desc = (cl_image_desc *)malloc(sizeof(cl_image_desc));
+	//benoit->image_format->image_channel_data_type = CL_SIGNED_INT32;
+	//benoit->image_format->image_channel_order = CL_RGBA;
+	//benoit->image_desc->image_type = CL_MEM_OBJECT_IMAGE2D;
+	//benoit->image_desc->image_width = benoit->win.width;
+	//benoit->image_desc->image_height = benoit->win.height;
+	//benoit->image_desc->image_depth = 1;
+	//benoit->image_desc->image_array_size = 1;
+	//benoit->image_desc->image_row_pitch = 0;
+	//benoit->image_desc->image_slice_pitch = 0;
+	//benoit->image_desc->num_mip_levels = 0;
+	//benoit->image_desc->num_samples = 0;
+	//benoit->image_desc->buffer = NULL;
 	clGetPlatformIDs(0, NULL, &benoit->platforms_count);
 	benoit->platforms_id = (cl_platform_id *)malloc(sizeof(cl_platform_id) * benoit->platforms_count);
 	clGetPlatformIDs(benoit->platforms_count, benoit->platforms_id, NULL);
@@ -288,17 +290,10 @@ t_benoit		*benoit_init(int argc, char **argv)
 		benoit->win.height = ft_atoi(argv[2]);
 	}
 	benoit->context = clCreateContext(NULL, benoit->devices_count, benoit->devices_id, NULL, NULL, &benoit->status);
-	if (benoit->status)
-		exit(1);
 	benoit->c_q = clCreateCommandQueue(benoit->context, benoit->devices_id[benoit->device], 0, &benoit->status);
-	if (benoit->status)
-		exit(1);
-	benoit->P = clCreateBuffer(benoit->context, CL_MEM_WRITE_ONLY, sizeof(char) * benoit->win.height * benoit->win.width * 4, NULL, &benoit->status);
-	if (benoit->status)
-		exit(1);
+	benoit->P = clCreateBuffer(benoit->context, CL_MEM_WRITE_ONLY, sizeof(int) * benoit->win.height * benoit->win.width, NULL, &benoit->status);
+	//benoit->image_obj = clCreateImage(benoit->connect, CL_MEM_WRITE_ONLY, benoit->image_format, benoit->image_desc, NULL, &benoit->status);
 	benoit->program = clCreateProgramWithSource(benoit->context, 1, (const char **)&mandelbrot_set, NULL, &benoit->status);
-	if (benoit->status)
-		exit(1);
 	benoit->status = clBuildProgram(benoit->program, 1, benoit->devices_id, NULL, NULL, NULL);
 	if (benoit->status != CL_SUCCESS)
 	{
@@ -326,8 +321,6 @@ t_benoit		*benoit_init(int argc, char **argv)
     	exit(EXIT_FAILURE);
 	}
 	benoit->kernel = clCreateKernel(benoit->program, "mandelbrot_set", &benoit->status);
-	if (benoit->status)
-		exit(1);
 	benoit->global_size = benoit->win.height * benoit->win.width;
 	benoit->local_size = 256;
 	return (benoit);
@@ -349,7 +342,7 @@ int				main(int argc, char **argv)
 		error_handler(IMAGE_ERROR);
 	if (!(benoit->pix_buf = mlx_get_data_addr(benoit->picture, &benoit->bits_per_pix, &benoit->size_line, &benoit->endian)))
 		error_handler(BUFFER_ERROR);
-	ft_printf("%d %d\n", benoit->bits_per_pix, benoit->size_line);
+	//ft_printf("%d %d\n", benoit->bits_per_pix, benoit->size_line);
 	//exit(1);
 	bind_handlers(benoit);
 	mlx_loop(benoit->connect);
