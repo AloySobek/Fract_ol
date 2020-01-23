@@ -6,7 +6,7 @@
 /*   By: vrichese <vrichese@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/07/15 15:33:31 by vrichese          #+#    #+#             */
-/*   Updated: 2019/09/10 14:47:00 by vrichese         ###   ########.fr       */
+/*   Updated: 2019/12/26 18:08:59 by vrichese         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,11 +17,6 @@
 # include "get_next_line.h"
 # include "libft.h"
 # include <mlx.h>
-#ifdef __APPLE__
-#include <OpenCL/opencl.h>
-#else
-#include <CL/opencl.h>
-#endif
 
 /*
 **	In honor of the great mathematician who discovered the world of fractals
@@ -73,26 +68,14 @@ typedef struct		s_benoit
 	double			y;
 	double			x1;
 	double			y1;
-	cl_device_id	*devices_id;
-	cl_platform_id	*platforms_id;
-	cl_uint			devices_count;
-	cl_uint			platforms_count;
-	cl_int			device;
-	cl_int			platform;
-	cl_context		context;
-	cl_mem			P;
-	cl_kernel		kernel;
-	cl_program		program;
-	cl_command_queue	c_q;
-	//cl_image_format	*image_format;
-	//cl_image_desc	*image_desc;
-	cl_mem			image_obj;
 	t_window		win;
 	cl_int			status;
 	size_t			global_size;
 	size_t			local_size;
 	char			info[1024];
 	int				keys[1024];
+	double			hello1;
+	double			hello2;
 }					t_benoit;
 
 /*

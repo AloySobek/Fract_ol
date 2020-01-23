@@ -6,29 +6,23 @@
 /*   By: vrichese <vrichese@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2019/07/15 15:34:33 by vrichese          #+#    #+#             */
-/*   Updated: 2019/09/10 17:58:19 by vrichese         ###   ########.fr       */
+/*   Updated: 2019/10/08 18:22:32 by vrichese         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../include/fract_ol.h"
-#ifdef __APPLE__
-#include <OpenCL/opencl.h>
-#else
-#include <CL/opencl.h>
-#endif
 
 const char *mandelbrot_set =
 "																																\
-__kernel void mandelbrot_set(int s_c, int f_c, int max_iter, double zoom, double q, double w, int test1, __global int *image)	\
+__kernel void mandelbrot_set(int s_c, int f_c, int x, int y, int max_iter, double zoom, double q, double w, int test1, __global int *image)	\
 {																																\
-	int		x = get_global_id(0);																								\
-	int		y = get_global_id(1);																								\
+	int		index = get_global_id(0);																							\
 	double	midX = x / 2;																										\
 	double	midY = y / 2;																										\
 	double	currentX = 0.0;																										\
 	double	currentY = 0.0;																										\
-	double	X0 = (midX - x) / zoom + q;																							\
-	double	Y0 = (midY - y) / zoom + w;																							\
+	double	X0 = (midX - (index - (index / x * x))) / zoom + q;																	\
+	double	Y0 = (midY - (index / x)) / zoom + w;																				\
 	double	squareX = 0.0;																										\
 	double	squareY = 0.0;																										\
 	double	difSquare = 0.0;																									\
@@ -59,7 +53,7 @@ __kernel void mandelbrot_set(int s_c, int f_c, int max_iter, double zoom, double
 void			display_pixels(t_benoit *benoit)
 {
 	clEnqueueReadBuffer(benoit->c_q, benoit->P, CL_TRUE, 0 , sizeof(int) * benoit->win.width * benoit->win.height, (int *)benoit->pix_buf, 0, NULL, NULL);
-	clEnqueueNDRangeKernel(benoit->c_q, benoit->kernel, 2, NULL, &benoit->global_size, &benoit->local_size, 0, NULL, NULL);
+	clEnqueueNDRangeKernel(benoit->c_q, benoit->kernel, 1, NULL, &benoit->global_size, &benoit->local_size, 0, NULL, NULL);
 	clSetKernelArg(benoit->kernel, 0, sizeof(int), (void *)&benoit->start_color);
 	clSetKernelArg(benoit->kernel, 1, sizeof(int), (void *)&benoit->finish_color);
 	clSetKernelArg(benoit->kernel, 2, sizeof(int), (void *)&benoit->win.width);
@@ -159,6 +153,10 @@ int				mouse_press(int button, int x, int y, t_benoit *benoit)
 		benoit->y -= benoit->y1;
 		benoit->x -= benoit->x1;
 	}
+	if (button == 3)
+	{
+		benoit->keys[3] = 1;
+	}
 	if (button == 5)
 	{
 		benoit->zoom *= 0.9;
@@ -174,6 +172,8 @@ int				mouse_press(int button, int x, int y, t_benoit *benoit)
 
 int				mouse_release(int button, int x, int y, t_benoit *benoit)
 {
+	if (button == 3)
+		benoit->keys[3] = 0;
 	return (0);
 }
 
@@ -182,6 +182,8 @@ int				mouse_move(int x, int y, t_benoit *benoit)
 	double test1;
 	double test2;
 	double one;
+	double hello1;
+	double hello2;
 
 	one = benoit->win.width / 2;
 	test1 = x - one;
@@ -189,7 +191,16 @@ int				mouse_move(int x, int y, t_benoit *benoit)
 	test2 = y - one;
 	benoit->x1 = test1 / (double)benoit->win.width * 2 / benoit->zoom * 50.0f;
 	benoit->y1 = test2 / (double)benoit->win.height * 2 / benoit->zoom * 50.0f;
-	//ft_printf("x: %f y: %f\n", benoit->x1, benoit->y1);
+	if (benoit->keys[3])
+	{
+		hello1 = (x - benoit->hello1) / benoit->zoom;
+		hello2 = (y - benoit->hello2) / benoit->zoom;
+		benoit->x += hello1;
+		benoit->y += hello2;
+		benoit->hello1 = x;
+		benoit->hello2 = y;
+		display_pixels(benoit);
+	}
 	return (0);
 }
 
@@ -242,8 +253,8 @@ t_benoit		*benoit_init(int argc, char **argv)
 		error_handler(MEMORY_ALLOC_ERROR);
 	benoit->start_color = 0x8b8b;
 	benoit->finish_color = 0x8b008b;
-	benoit->win.width = 2560;
-	benoit->win.height = 1440;
+	benoit->win.width = 1920;
+	benoit->win.height = 1080;
 	benoit->max_iter = 30;
 	benoit->x = 0.0f;
 	benoit->y = 0.0f;
@@ -253,6 +264,8 @@ t_benoit		*benoit_init(int argc, char **argv)
 	benoit->platforms_count = 0;
 	benoit->devices_count = 0;
 	benoit->test = 2;
+	benoit->hello1 = benoit->win.width / 2;
+	benoit->hello2 = benoit->win.height / 2;
 
 	ft_bzero(benoit->keys, 1024);
 	//benoit->image_format = (cl_image_format *)malloc(sizeof(cl_image_format));
@@ -301,20 +314,14 @@ t_benoit		*benoit_init(int argc, char **argv)
 		cl_int errcode;
 		size_t build_log_len;
 		errcode = clGetProgramBuildInfo(benoit->program, benoit->devices_id[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_len);
-		if (errcode) {
-            printf("clGetProgramBuildInfo failed at line %d\n", __LINE__);
-            exit(-1);
-        }
+		if (errcode)
+            printf("clGetProgramBuildInfo failed at line %d\n", __LINE__); exit(-1);
     	buff_erro = malloc(build_log_len);
-    	if (!buff_erro) {
-        	printf("malloc failed at line %d\n", __LINE__);
-        	exit(-2);
-		}
+    	if (!buff_erro)
+		    printf("malloc failed at line %d\n", __LINE__); exit(-2);
     	errcode = clGetProgramBuildInfo(benoit->program, benoit->devices_id[0], CL_PROGRAM_BUILD_LOG, build_log_len, buff_erro, NULL);
-    	if (errcode) {
-        	printf("clGetProgramBuildInfo failed at line %d\n", __LINE__);
-        	exit(-3);
-    	}
+    	if (errcode)
+        	printf("clGetProgramBuildInfo failed at line %d\n", __LINE__); exit(-3);
     	fprintf(stderr,"Build log: \n%s\n", buff_erro);
     	free(buff_erro);
     	fprintf(stderr,"clBuildProgram failed\n");
