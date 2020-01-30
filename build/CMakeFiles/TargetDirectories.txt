@@ -1,0 +1,3 @@
+/Users/vrichese/Workspace/Rus42/Graphics/Fractal/build/CMakeFiles/rebuild_cache.dir
+/Users/vrichese/Workspace/Rus42/Graphics/Fractal/build/CMakeFiles/edit_cache.dir
+/Users/vrichese/Workspace/Rus42/Graphics/Fractal/build/CMakeFiles/fractal.dir
